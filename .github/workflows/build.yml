@@ -42,7 +42,7 @@ jobs:
       - name: Setup ReSukiSU
         if: github.ref == 'refs/heads/integrate-resukisu'
         run: |
-          git clone --depth=1 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+          git clone --depth=1 https://github.com/Baka-SU/BakaSU.git KernelSU
           ln -sf $(pwd)/KernelSU/kernel drivers/kernelsu
 
       - name: Build kernel
