@@ -2,7 +2,7 @@ name: Build Kernel for LeMax2 (x2)
 
 on:
   push:
-    branches: [lineage-18.1, integrate-resukisu]
+    branches: [lineage-18.1, integrate-resukisu, integrate-sukisu]
   workflow_dispatch:
 
 permissions:
@@ -39,11 +39,13 @@ jobs:
       - name: Suppress git dirty marker
         run: echo -n "" > .scmversion
 
-      - name: Setup ReSukiSU
-        if: github.ref == 'refs/heads/integrate-resukisu'
+      - name: Setup SukiSU-Ultra (vendored in integrate-sukisu)
+        if: github.ref == 'refs/heads/integrate-sukisu'
         run: |
-          git clone --depth=1 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
-          ln -sf $(pwd)/KernelSU/kernel drivers/kernelsu
+          # SukiSU-Ultra builtin 分支已 vendor 进 drivers/kernelsu（含 3.18 适配），
+          # 无需在线克隆；此处仅校验集成完整性
+          test -f drivers/kernelsu/ksu_main.c
+          grep -q 'obj-$(CONFIG_KSU)' drivers/Makefile
 
       - name: Build kernel
         run: |
@@ -120,13 +122,13 @@ jobs:
           cd AnyKernel3-Droidspaces-APatch
           zip -r9 ../Droidspaces-APatch-x2-kernel.zip * -x '*.git*' 'README.md' 'LICENSE'
 
-      - name: Package ReSukiSU zip
-        if: github.ref == 'refs/heads/integrate-resukisu'
+      - name: Package SukiSU zip
+        if: github.ref == 'refs/heads/integrate-sukisu'
         run: |
-          cp -r anykernel3 AnyKernel3-ReSukiSU
-          cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3-ReSukiSU/
-          cd AnyKernel3-ReSukiSU
-          zip -r9 ../Droidspaces-ReSukiSU-x2.zip * -x '*.git*' 'README.md' 'LICENSE'
+          cp -r anykernel3 AnyKernel3-SukiSU
+          cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3-SukiSU/
+          cd AnyKernel3-SukiSU
+          zip -r9 ../Droidspaces-SukiSU-x2.zip * -x '*.git*' 'README.md' 'LICENSE'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -136,6 +138,7 @@ jobs:
             Droidspaces-x2-kernel.zip
             Droidspaces-APatch-x2-kernel.zip
             Droidspaces-ReSukiSU-x2.zip
+            Droidspaces-SukiSU-x2.zip
           retention-days: 30
 
       - name: Release (lineage-18.1)
@@ -179,10 +182,43 @@ jobs:
             | `boot-stock-lineage.img` | 原厂 LineageOS boot.img，备用 |
 
             **APatch SuperKey**: `123456789`
-            **ReSukiSU Manager**: 从 [GitHub Actions nightly](https://github.com/ReSukiSU/ReSukiSU/actions) 获取
+            **ReSukiSU Manager**: 从 [BakaSU Releases](https://github.com/Baka-SU/BakaSU/releases) 获取（ReSukiSU 已更名 BakaSU）
           files: |
             Droidspaces-x2-kernel.zip
             Droidspaces-ReSukiSU-x2.zip
+            Droidspaces-APatch-x2-kernel.zip
+            prebuilts/boot-stock-lineage.img
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release (integrate-sukisu)
+        if: github.ref == 'refs/heads/integrate-sukisu'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: droidspaces-sukisu-${{ github.run_number }}
+          name: "Droidspaces + SukiSU-Ultra Build #${{ github.run_number }}"
+          body: |
+            ## Droidspaces + SukiSU-Ultra (builtin) Kernel for LeMax2 (x2)
+
+            | 文件 | 说明 |
+            |------|------|
+            | `Droidspaces-x2-kernel.zip` | 纯 Droidspaces 内核，AnyKernel3 格式 |
+            | `Droidspaces-SukiSU-x2.zip` | Droidspaces + SukiSU-Ultra Root，AnyKernel3 格式 |
+            | `Droidspaces-APatch-x2-kernel.zip` | Droidspaces + APatch 内核，已内置超级密钥 |
+            | `boot-stock-lineage.img` | 原厂 LineageOS boot.img，备用 |
+
+            **APatch SuperKey**: `123456789`
+            **SukiSU Manager**: [SukiSU-Ultra Releases](https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases)（v4.3.0+）
+
+            ### 本分支变更
+            - SukiSU-Ultra builtin 手动钩子（v4.3.0, commit 1cfa5734），vendor 进 drivers/kernelsu
+            - 3.18 适配：LSM 空转 + gnu99 + vfs_read 钩子（init.rc 注入）
+            - 开机"您的设备内部出现了问题"弹窗修复（/proc/config.gz VINTF 伪装 CONFIG_SYSVIPC）
+            - Droidspaces v7.1.0 支持：CFS_BANDWIDTH/MEMCG_SWAP/MACVLAN/NAT66/关 ANDROID_PARANOID_NETWORK
+          files: |
+            Droidspaces-x2-kernel.zip
+            Droidspaces-SukiSU-x2.zip
             Droidspaces-APatch-x2-kernel.zip
             prebuilts/boot-stock-lineage.img
           draft: false

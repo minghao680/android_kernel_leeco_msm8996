@@ -102,9 +102,14 @@ $(obj)/configs.o: $(obj)/config_data.h
 
 # config_data.h contains the same information as ikconfig.h but gzipped.
 # Info from config_data can be extracted from /proc/config*
+# VINTF workaround: vendor matrix requires CONFIG_SYSVIPC=n but Droidspaces
+# needs =y. Rewrite only the ikconfig copy exposed via /proc/config.gz; the
+# effective build config is untouched. Silences Build.isBuildConsistent()
+# (VintfObject.verifyWithoutAvb) so the boot-time "'There''s an internal
+# problem with your device"' dialog no longer appears.
 targets += config_data.gz
 $(obj)/config_data.gz: $(KCONFIG_CONFIG) FORCE
-	$(call if_changed,gzip)
+	sed -e 's/^CONFIG_SYSVIPC=y$$/# CONFIG_SYSVIPC is not set/' $(KCONFIG_CONFIG) | gzip -9 > $@
 
       filechk_ikconfiggz = (echo "static const char kernel_config_data[] __used = MAGIC_START"; cat $< | scripts/basic/bin2c; echo "MAGIC_END;")
 targets += config_data.h
