@@ -49,6 +49,16 @@
 #define FILLDIR_ACTOR_STOP -EINVAL
 #endif
 
+/* 3.18: filldir_t takes void * as first arg; 4.19+ took struct dir_context *
+ * (6.1+ returns bool). Provide a uniform actor prototype + ctx cast. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#define FILLDIR_ACTOR_PROTO(name)static int name(void *__buf, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
+#define FILLDIR_ACTOR_CTX(ctxtype, buf)((ctxtype *)container_of((struct dir_context *)(buf), ctxtype, ctx))
+#else
+#define FILLDIR_ACTOR_PROTO(name)static FILLDIR_RETURN_TYPE name(struct dir_context *ctx, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
+#define FILLDIR_ACTOR_CTX(ctxtype, buf)(container_of(buf, ctxtype, ctx))
+#endif
+
 struct fb_path {
     char dirpath[DATA_PATH_LEN];
     int depth;
@@ -63,10 +73,9 @@ struct fb_dir_ctx {
     bool matched;
 };
 
-static FILLDIR_RETURN_TYPE fb_actor(struct dir_context *ctx, const char *name, int namelen, loff_t off, u64 ino,
-                                    unsigned int d_type)
+FILLDIR_ACTOR_PROTO(fb_actor)
 {
-    struct fb_dir_ctx *c = container_of(ctx, struct fb_dir_ctx, ctx);
+    struct fb_dir_ctx *c = FILLDIR_ACTOR_CTX(struct fb_dir_ctx, __buf);
     char dirpath[DATA_PATH_LEN];
 
     if (!strncmp(name, "..", namelen) || !strncmp(name, ".", namelen))

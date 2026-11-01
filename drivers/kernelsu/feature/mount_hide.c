@@ -258,7 +258,11 @@ static int __nocfi ksu_filter_show(struct seq_file *m, struct vfsmount *mnt, ksu
     ret = orig(m, mnt);
     if (ret)
         return ret; /* SEQ_SKIP / error: seq layer handles the bytes */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
     if (seq_has_overflowed(m))
+#else
+    if (m->count >= m->size)
+#endif
         return 0; /* record truncated; seq will realloc and retry */
     if (m->count <= start)
         return 0; /* nothing emitted */

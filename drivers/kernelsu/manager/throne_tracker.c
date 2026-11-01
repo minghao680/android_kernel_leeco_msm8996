@@ -53,6 +53,16 @@ struct my_dir_context {
 #define FILLDIR_ACTOR_STOP -EINVAL
 #endif
 
+/* 3.18: filldir_t takes void * as first arg; 4.19+ took struct dir_context *
+ * (6.1+ returns bool). Provide a uniform actor prototype + ctx cast. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#define FILLDIR_ACTOR_PROTO(name)static int name(void *__buf, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
+#define FILLDIR_ACTOR_CTX(ctxtype, buf)((ctxtype *)container_of((struct dir_context *)(buf), ctxtype, ctx))
+#else
+#define FILLDIR_ACTOR_PROTO(name)static FILLDIR_RETURN_TYPE name(struct dir_context *ctx, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
+#define FILLDIR_ACTOR_CTX(ctxtype, buf)(container_of(buf, ctxtype, ctx))
+#endif
+
 static bool maybe_manager_apk_dir(const char *path)
 {
     _Static_assert(sizeof(KSU_PACKAGE_NAME) < KSU_MAX_PACKAGE_NAME, "KSU_PACKAGE_NAME too long!");
@@ -66,10 +76,9 @@ static bool maybe_manager_apk_dir(const char *path)
     return strncmp(pkg, KSU_PACKAGE_NAME, sizeof(KSU_PACKAGE_NAME)) == 0;
 }
 
-static FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name, int namelen, loff_t off, u64 ino,
-                                    unsigned int d_type)
+FILLDIR_ACTOR_PROTO(my_actor)
 {
-    struct my_dir_context *my_ctx = container_of(ctx, struct my_dir_context, ctx);
+    struct my_dir_context *my_ctx = FILLDIR_ACTOR_CTX(struct my_dir_context, __buf);
     char *candidate_path = (char *)my_ctx->private_data;
     char dirpath[DATA_PATH_LEN];
 

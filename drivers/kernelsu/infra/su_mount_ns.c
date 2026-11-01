@@ -44,6 +44,7 @@ try_setns:
         pr_warn("failed to get task_struct for PID 1\n");
         goto out;
     }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
     struct path ns_path;
     long ret = (long)ns_get_path(&ns_path, pid1_task, &mntns_operations);
     put_task_struct(pid1_task);
@@ -53,6 +54,16 @@ try_setns:
     }
 
     struct file *ns_file = dentry_open(&ns_path, O_RDONLY, ksu_cred);
+#else
+    /* pre-3.19: no nsfs; open the procfs handle instead */
+    put_task_struct(pid1_task);
+    struct path ns_path;
+    if (kern_path("/proc/1/ns/mnt", LOOKUP_FOLLOW, &ns_path)) {
+        pr_warn("failed get path for init mount namespace\n");
+        goto out;
+    }
+    struct file *ns_file = dentry_open(&ns_path, O_RDONLY, ksu_cred);
+#endif
     path_put(&ns_path);
     if (IS_ERR(ns_file)) {
         pr_warn("failed open file for init mount namespace: %ld\n", PTR_ERR(ns_file));

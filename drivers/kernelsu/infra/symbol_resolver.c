@@ -2,7 +2,9 @@
 #include <linux/kallsyms.h>
 #include <linux/module.h>
 #include <linux/mm.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
 #include <linux/sched/signal.h>
+#endif
 #include <linux/slab.h>
 #include <linux/sort.h>
 #include <linux/string.h>

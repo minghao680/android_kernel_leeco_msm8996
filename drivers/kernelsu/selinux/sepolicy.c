@@ -153,7 +153,7 @@ static bool remove_avtab_node(struct policydb *db, struct avtab_node *node)
     for (i = 0; i < db->te_avtab.nslot; i++) {
         prev = NULL;
         // https://github.com/torvalds/linux/commit/acdf52d97f824019888422842757013b37441dd1
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) || LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
         for (n = db->te_avtab.htable[i]; n; prev = n, n = n->next) {
             if (n != node)
                 continue;
@@ -973,7 +973,7 @@ static bool set_type_state(struct policydb *db, const char *type_name, bool perm
 
 static void add_typeattribute_raw(struct policydb *db, struct type_datum *type, struct type_datum *attr)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) || defined(KSU_TYPE_VAL_TO_STRUCT) ||                                \
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) || LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0) || defined(KSU_TYPE_VAL_TO_STRUCT) ||                                \
     defined(KSU_TYPE_VAL_TO_STRUCT_ARRAY)
     struct ebitmap *sattr = &db->type_attr_map_array[type->value - 1];
 #elif defined(CONFIG_IS_HW_HISI)

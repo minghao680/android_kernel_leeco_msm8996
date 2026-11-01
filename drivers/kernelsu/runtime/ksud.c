@@ -413,7 +413,11 @@ static ssize_t read_iter_proxy(struct kiocb *iocb, struct iov_iter *to)
     }
 append_ksu_rc:
     // copy_to_iter returns the number of copied bytes
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
     append_count = copy_to_iter(KERNEL_SU_RC + ksu_rc_pos, ksu_rc_len - ksu_rc_pos, to);
+#else
+    append_count = copy_to_iter((void *)(KERNEL_SU_RC + ksu_rc_pos), ksu_rc_len - ksu_rc_pos, to);
+#endif
     if (!append_count) {
         pr_info("read_iter_proxy: append error, totally appended %ld\n", ksu_rc_pos);
     } else {
@@ -435,7 +439,12 @@ static bool is_init_rc(struct file *fp)
         return false;
     }
 
-    if (!d_is_reg(fp->f_path.dentry)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
+    if (!d_is_reg(fp->f_path.dentry))
+#else
+    if (!S_ISREG(fp->f_path.dentry->d_inode->i_mode))
+#endif
+    {
         return false;
     }
 
