@@ -45,7 +45,9 @@ static int version_spoof_apply(const struct ksu_version_spoof_cmd *cmd)
 
 int ksu_extension_version_spoof_io(u32 id, void __user *raw)
 {
-    struct ksu_version_spoof_cmd cmd = { 0 };
+    struct ksu_version_spoof_cmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
     int ret = 0;
 
     if (!raw)

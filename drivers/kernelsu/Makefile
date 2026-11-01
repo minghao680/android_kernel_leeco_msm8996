@@ -196,8 +196,11 @@ $(info -- You have not integrated susfs in your kernel yet.)
 $(info -- Read: https://gitlab.com/simonpunk/susfs4ksu)
 endif
 
-ccflags-y += -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat -Wno-missing-prototypes
+ccflags-y += -Wno-strict-prototypes -Wno-missing-prototypes
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function
+# Newer-GCC-only warning flags; cc-option drops them on GCC < 7 / < 13
+ccflags-y += $(call cc-option,-Wno-int-conversion,)
+ccflags-y += $(call cc-option,-Wno-gcc-compat,)
 
 # Pre-4.7 kernels default to gnu89; keep it: -std=gnu99 makes GCC 4.9 reject
 # the (spinlock_t) cast inside __SPIN_LOCK_UNLOCKED at file scope. The few

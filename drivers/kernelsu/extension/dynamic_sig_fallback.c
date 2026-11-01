@@ -52,10 +52,10 @@
 /* 3.18: filldir_t takes void * as first arg; 4.19+ took struct dir_context *
  * (6.1+ returns bool). Provide a uniform actor prototype + ctx cast. */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
-#define FILLDIR_ACTOR_PROTO(name)static int name(void *__buf, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
+#define FILLDIR_ACTOR_PROTO(fn)static int fn(void *__buf, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
 #define FILLDIR_ACTOR_CTX(ctxtype, buf)((ctxtype *)container_of((struct dir_context *)(buf), ctxtype, ctx))
 #else
-#define FILLDIR_ACTOR_PROTO(name)static FILLDIR_RETURN_TYPE name(struct dir_context *ctx, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
+#define FILLDIR_ACTOR_PROTO(fn)static FILLDIR_RETURN_TYPE fn(struct dir_context *ctx, const char *name, int namelen, loff_t off, u64 ino, unsigned int d_type)
 #define FILLDIR_ACTOR_CTX(ctxtype, buf)(container_of(buf, ctxtype, ctx))
 #endif
 

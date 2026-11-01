@@ -44,9 +44,11 @@ try_setns:
         pr_warn("failed to get task_struct for PID 1\n");
         goto out;
     }
+    long ret;
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
     struct path ns_path;
-    long ret = (long)ns_get_path(&ns_path, pid1_task, &mntns_operations);
+    ret = (long)ns_get_path(&ns_path, pid1_task, &mntns_operations);
     put_task_struct(pid1_task);
     if (ret) {
         pr_warn("failed get path for init mount namespace: %ld\n", ret);
