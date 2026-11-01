@@ -147,6 +147,9 @@ static inline void *ksu_kvmalloc(size_t size, gfp_t flags)
     void *buf = kmalloc(size, flags);
     if (!buf)
         buf = vmalloc(size);
+    // 3.18 vmalloc() takes no flags: honor __GFP_ZERO ourselves
+    if (buf && (flags & __GFP_ZERO))
+        memset(buf, 0, size);
 
     return buf;
 }

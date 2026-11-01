@@ -619,8 +619,9 @@ static int do_lookup_symbols(void __user *arg)
     if (!cmd.count || cmd.count > KSU_LOOKUP_SYMBOLS_MAX)
         return -EINVAL;
 
-    names = kvmalloc_array(cmd.count, sizeof(*names), GFP_KERNEL);
-    addrs = kvmalloc_array(cmd.count, sizeof(*addrs), GFP_KERNEL);
+    /* kvcalloc semantics: zeroed, so skipped entries are NULL for kfree */
+    names = kvmalloc_array(cmd.count, sizeof(*names), GFP_KERNEL | __GFP_ZERO);
+    addrs = kvmalloc_array(cmd.count, sizeof(*addrs), GFP_KERNEL | __GFP_ZERO);
     if (!names || !addrs) {
         ret = -ENOMEM;
         goto out;
