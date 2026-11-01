@@ -80,10 +80,14 @@
 #include "extension/cpu_spoof.c"
 #include "extension/umount_paths.c"
 #include "extension/dynamic_manager.c"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+/* KPM needs set_memory.h (4.13+), u64_to_user_ptr (4.20+) and the
+ * generic vdso surface; on older kernels the glue below stubs out. */
 #include "extension/kpm.c"
 #include "extension/kpm/kpm.c"
 #include "extension/kpm/compact.c"
 #include "extension/kpm/super_access.c"
+#endif
 #include "extension/susfs_extension.c"
 #include "extension/dynamic_sig_fallback.c"
 #include "extension/version_spoof.c"
