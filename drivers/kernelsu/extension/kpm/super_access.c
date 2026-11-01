@@ -194,9 +194,7 @@ static struct DynamicStructInfo *dynamic_struct_infos[] = {
 int sukisu_super_find_struct(const char *struct_name, size_t *out_size,
                              int *out_members)
 {
-    for (size_t i = 0;
-         i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0]));
-         i++) {
+    for (i = 0; i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0])); i++) {
         struct DynamicStructInfo *info = dynamic_struct_infos[i];
 
         if (strcmp(struct_name, info->name) == 0) {
@@ -223,13 +221,14 @@ EXPORT_SYMBOL(sukisu_super_find_struct);
 int sukisu_super_access(const char *struct_name, const char *member_name,
                         size_t *out_offset, size_t *out_size)
 {
-    for (size_t i = 0;
-         i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0]));
-         i++) {
+    size_t i;
+    size_t i1;
+
+    for (i = 0; i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0])); i++) {
         struct DynamicStructInfo *info = dynamic_struct_infos[i];
 
         if (strcmp(struct_name, info->name) == 0) {
-            for (size_t i1 = 0; i1 < info->count; i1++) {
+            for (i1 = 0; i1 < info->count; i1++) {
                 if (strcmp(info->members[i1].name, member_name) == 0) {
                     if (out_offset)
                         *out_offset = info->members[i1].offset;
@@ -261,16 +260,17 @@ EXPORT_SYMBOL(sukisu_super_access);
 int sukisu_super_container_of(const char *struct_name, const char *member_name,
                               void *ptr, void **out_ptr)
 {
+    size_t i;
+    size_t i1;
+
     if (ptr == NULL)
         return -3;
 
-    for (size_t i = 0;
-         i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0]));
-         i++) {
+    for (i = 0; i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0])); i++) {
         struct DynamicStructInfo *info = dynamic_struct_infos[i];
 
         if (strcmp(struct_name, info->name) == 0) {
-            for (size_t i1 = 0; i1 < info->count; i1++) {
+            for (i1 = 0; i1 < info->count; i1++) {
                 if (strcmp(info->members[i1].name, member_name) == 0) {
                     *out_ptr = (void *)DYNAMIC_CONTAINER_OF(
                         info->members[i1].offset, ptr);

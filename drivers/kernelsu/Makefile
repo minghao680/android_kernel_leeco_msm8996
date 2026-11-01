@@ -199,9 +199,9 @@ endif
 ccflags-y += -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat -Wno-missing-prototypes
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function
 
-# Pre-4.7 kernels default to gnu89; the C99 loop-scoped declarations in
-# extension/kpm and preinit/runner need gnu99. GCC 4.9+ supports it.
-ccflags-y += -std=gnu99
+# Pre-4.7 kernels default to gnu89; keep it: -std=gnu99 makes GCC 4.9 reject
+# the (spinlock_t) cast inside __SPIN_LOCK_UNLOCKED at file scope. The few
+# C99 loop declarations are fixed in-source instead.
 
 
 # Keep a new line here!! Because someone may append config

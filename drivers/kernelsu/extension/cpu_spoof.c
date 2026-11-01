@@ -26,8 +26,10 @@
 #include <asm/cpu.h>
 #include <asm/cputype.h>
 #include <asm/cpufeature.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 #include <vdso/datapage.h>
 #include <vdso/clocksource.h>
+#endif
 
 #ifndef MIDR_PARTNUM_SHIFT
 #define MIDR_PARTNUM_SHIFT 4
@@ -129,6 +131,7 @@ static int set_spoof_cpu(const struct ksu_set_spoof_cpu_cmd *cmd)
             if (part != ARM_CPU_PART_NEOVERSE_N1 &&
                 part != ARM_CPU_PART_CORTEX_A76 &&
                 part != QCOM_CPU_PART_KRYO_4XX_GOLD) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
                 struct vdso_time_data **vdso_time_data_ptr =
                     (struct vdso_time_data **)find_kernel_symbol_exact(
@@ -203,6 +206,9 @@ static int set_spoof_cpu(const struct ksu_set_spoof_cpu_cmd *cmd)
                         ++missing;
                     }
                 }
+#else
+                /* pre-5.4: no generic vdso, clock mode spoof unavailable */
+#endif
             }
         }
     }

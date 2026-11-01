@@ -102,7 +102,7 @@ static void __user *userspace_stack_buffer(const void *d, size_t len)
 static void __user *userspace_stack_buffer(const void *d, size_t len)
 {
 	if (!current->mm)
-		return nullptr;
+		return NULL;
 
 	volatile unsigned long start_stack = current->mm->start_stack;
 	unsigned int step = 32;
@@ -121,7 +121,7 @@ start_loop:;
 	if (step <= 2048)
 		goto start_loop;
 
-	return nullptr;
+	return NULL;
 }
 #endif
 

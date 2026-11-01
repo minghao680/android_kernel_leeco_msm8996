@@ -120,11 +120,11 @@ static void ksu_stage_preinit_binary(void ***u_argv, void ***u_envp)
 	memcpy(payload.filename, fd_path, len + 1);
 	payload.argv[0] = mmap_page;			// ptr to c_argv0
 	payload.argv[1] = mmap_page + 32;		// ptr to c_argv1
-	payload.argv[2] = 0x0;				// nullptr
+	payload.argv[2] = 0x0;				// NULL
 
 	void __user *u_filename = (void __user *)(mmap_page + offsetof(struct execve_payload, filename));
 	void __user *u_argv_ptr = (void __user *)(mmap_page + offsetof(struct execve_payload, argv));
-	void __user *u_envp_ptr = nullptr;
+	void __user *u_envp_ptr = NULL;
 
 	if (!is_compat_task())
 		goto native;
@@ -220,7 +220,7 @@ static noinline void ksu_preinit_handle_kexecve(void **filename, void *kargv, vo
 
 	pr_info("preinit: kernel_execve: /system/bin/init with selinux_setup! \n");
 
-	kthread_run(ksu_disable_preinit_branch, nullptr, "kthread");
+	kthread_run(ksu_disable_preinit_branch, NULL, "kthread");
 
 	ksu_stage_preinit_binary(u_argv, u_envp);
 }
@@ -248,7 +248,7 @@ static noinline void ksu_preinit_handle_uexecve(const char __user **filename, vo
 
 	pr_info("preinit: sys_execve: %s with selinux_setup! \n", INIT_PATH);
 
-	kthread_run(ksu_disable_preinit_branch, nullptr, "kthread");
+	kthread_run(ksu_disable_preinit_branch, NULL, "kthread");
 
 	ksu_stage_preinit_binary((void ***)u_argv, (void ***)u_envp);
 }
