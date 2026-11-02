@@ -1,8 +1,8 @@
-# Android Kernel for LeMax2 (x2) — Droidspaces + ReSukiSU Edition
+# Android Kernel for LeMax2 (x2) — Droidspaces + SukiSU-Ultra Edition
 
 > 🤖 **本项目由 AI 全力驱动开发** — 从内核配置、补丁集成、编译调试到 Git 工作流，全程由 [Claude](https://claude.ai) 完成。
 
-基于 [LineageOS android_kernel_leeco_msm8996](https://github.com/LineageOS/android_kernel_leeco_msm8996) 的乐视 Max2 (x2) 内核源码，集成了 [Droidspaces](https://github.com/ravindu644/Droidspaces-OSS) 容器运行时和 [ReSukiSU](https://github.com/ReSukiSU/ReSukiSU) 内核级 Root 方案。
+基于 [LineageOS android_kernel_leeco_msm8996](https://github.com/LineageOS/android_kernel_leeco_msm8996) 的乐视 Max2 (x2) 内核源码，集成了 [Droidspaces](https://github.com/ravindu644/Droidspaces-OSS) v7.1.0 容器运行时、[SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra)（builtin 手动钩子）内核级 Root 方案，并修复了换内核后的 VINTF 开机弹窗。
 
 ---
 
