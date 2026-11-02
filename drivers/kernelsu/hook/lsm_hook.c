@@ -175,6 +175,37 @@ static int ksu_task_fix_setuid(struct cred *new, const struct cred *old, int fla
 }
 #endif
 
+/* Pre-4.1 kernels have no security_add_hooks(); task_fix_setuid is invoked
+ * manually from kernel/sys.c (__sys_setresuid). This is the only path that
+ * hands the manager/root-granted app a ksu fd, which libsu's
+ * Shell.isAppGrantedRoot() relies on -- without it apps such as Droidspaces
+ * report "root unavailable" even though `su` works. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
+void ksu_handle_setresuid_manual(uid_t ruid, uid_t euid, uid_t suid)
+{
+#ifndef CONFIG_KSU_SUSFS
+    uid_t old_uid = current_uid().val;
+
+    if (unlikely(is_uid_manager(ruid))) {
+        disable_seccomp();
+        pr_info("install fd for manager: %d\n", ruid);
+        ksu_install_fd();
+        return;
+    }
+
+    if (ksu_is_allow_uid_for_current(ruid)) {
+        disable_seccomp();
+    }
+
+    ksu_handle_umount(old_uid, ruid);
+#else
+    (void)ruid;
+    (void)euid;
+    (void)suid;
+#endif
+}
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 static struct security_hook_list ksu_hooks[] = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) || defined(CONFIG_IS_HW_HISI) ||                                     \
