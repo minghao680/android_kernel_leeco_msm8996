@@ -170,10 +170,17 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 {
 #ifdef KSU_COMPAT_USE_STATIC_KEY
     if (static_branch_unlikely(&is_first_zygote))
-#else
-    if (unlikely(first_zygote))
-#endif
         (void)ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags);
+#else
+    /* 3.18 has no static keys: fire the ksud probe exactly once */
+    {
+        static bool first_zygote = true;
+        if (unlikely(first_zygote)) {
+            first_zygote = false;
+            (void)ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags);
+        }
+    }
+#endif
 
     return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
                         flags);

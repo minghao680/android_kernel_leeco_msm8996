@@ -101,8 +101,10 @@ static __u32 ksu_sulog_copy_filename_kernel(const char *filename, char *dst, __u
     if (!filename)
         return ksu_sulog_copy_empty_string(dst);
 
-    ret = strncpy(dst, filename, dst_len);
-    if (ret <= 0)
+    strncpy(dst, filename, dst_len);
+    dst[dst_len - 1] = '\0';
+    ret = strnlen(dst, dst_len);
+    if (!ret)
         return ksu_sulog_copy_empty_string(dst);
 
     if (ret >= dst_len) {
@@ -139,8 +141,15 @@ static __u32 ksu_sulog_flatten_argv(struct user_arg_ptr *argv_user, char *dst, _
         if (IS_ERR(arg_user))
             return ksu_sulog_copy_empty_string(dst);
 
+#ifdef KSU_HAS_STRNCPY_FROM_USER_NOFAULT
         copied =
             strncpy_from_user_nofault(arg, (const void __user *)untagged_addr((unsigned long)arg_user), sizeof(arg));
+#else
+        /* 3.18 only has the plain strncpy_from_user; execveat hooks run in
+         * process context, so the potential fault-in is acceptable. */
+        copied =
+            strncpy_from_user(arg, (const void __user *)untagged_addr((unsigned long)arg_user), sizeof(arg));
+#endif
         if (copied <= 0)
             return ksu_sulog_copy_empty_string(dst);
 

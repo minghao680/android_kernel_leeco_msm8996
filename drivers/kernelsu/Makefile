@@ -119,6 +119,11 @@ ccflags-y += -DKSU_HAS_NEW_VFS_GETATTR
 endif
 
 ifeq ($(shell grep -q " current_sid(void)" $(srctree)/security/selinux/include/objsec.h; echo $$?),0)
+# official SUSFS 2.5+ only; the 3.10 backport (v2.3.0) lacks it
+ifeq ($(shell grep -q "susfs_add_sus_avd_allowed_by_type" $(srctree)/include/linux/susfs.h; echo $$?),0)
+ccflags-y += -DKSU_HAS_SUSFS_AVD_ALLOWED_BY_TYPE
+endif
+
 ccflags-y += -DKSU_COMPAT_HAS_CURRENT_SID
 endif
 
@@ -199,8 +204,7 @@ endif
 ccflags-y += -Wno-strict-prototypes -Wno-missing-prototypes
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function
 # Newer-GCC-only warning flags; cc-option drops them on GCC < 7 / < 13
-ccflags-y += $(call cc-option,-Wno-int-conversion,)
-ccflags-y += $(call cc-option,-Wno-gcc-compat,)
+ccflags-y += $(call cc-option,-Wno-unused-but-set-variable,)
 
 # Pre-4.7 kernels default to gnu89; keep it: -std=gnu99 makes GCC 4.9 reject
 # the (spinlock_t) cast inside __SPIN_LOCK_UNLOCKED at file scope. The few

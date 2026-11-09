@@ -250,6 +250,14 @@ void escape_to_root_for_adb_root(void)
 }
 
 #ifdef CONFIG_KSU_SUSFS
+#ifndef KSU_COMPAT_HAS_CURRENT_SID
+/* pre-4.4 kernels keep the SID only in cred->security */
+static inline u32 current_sid(void)
+{
+    const struct task_security_struct *tsec = current_security();
+    return tsec ? tsec->sid : 0;
+}
+#endif
 #define KERNEL_INIT_DOMAIN "u:r:init:s0"
 #define KERNEL_ZYGOTE_DOMAIN "u:r:zygote:s0"
 #define KERNEL_ZYGOTE_NEXT_DOMAIN "u:r:zygote_next:s0"

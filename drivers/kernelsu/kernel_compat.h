@@ -169,9 +169,15 @@ static inline void *ksu_kvmalloc_array(size_t n, size_t size, gfp_t flags)
     return ksu_kvmalloc(n * size, flags);
 }
 
+#ifndef kvmalloc
 #define kvmalloc ksu_kvmalloc
+#endif
+#ifndef kvmalloc_array
 #define kvmalloc_array ksu_kvmalloc_array
+#endif
+#ifndef kvfree
 #define kvfree ksu_kvfree
+#endif
 #endif
 
 // for supercalls.c fd install tw
@@ -265,6 +271,15 @@ __weak void groups_sort(struct group_info *group_info)
 
 #ifndef in_compat_syscall
 #define in_compat_syscall() is_compat_task()
+#endif
+
+/* u64_to_user_ptr() arrived with the io_uring era (4.20); the KPM bridge
+ * needs it to dereference user-provided u64 pointers on 3.18. */
+#ifndef u64_to_user_ptr
+static inline void __user *u64_to_user_ptr(u64 ptr)
+{
+	return (void __user *)(uintptr_t)ptr;
+}
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0) || defined(KSU_HAS_MODERN_STATIC_KEY_INTERFACE)

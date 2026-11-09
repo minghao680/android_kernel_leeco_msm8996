@@ -27,13 +27,18 @@ long __nocfi sukisu_kpm_bridge(unsigned long op, unsigned long a1, unsigned long
 #ifdef CONFIG_ARM64
     typedef long (*handler_t)(const struct pt_regs *);
     static handler_t handler;
-    struct pt_regs regs = { 0 };
+    struct pt_regs regs;
+    memset(&regs, 0, sizeof(regs));
     handler_t fn = READ_ONCE(handler);
 
     if (!fn) {
         fn = (handler_t)find_kernel_symbol_exact("__arm64_sys_truncate");
         if (!fn) fn = (handler_t)find_kernel_symbol_exact("__arm64_sys_truncate.cfi_jt");
         if (!fn) fn = (handler_t)find_kernel_symbol_exact("__arm64_sys_truncate.cfi");
+        /* 3.18 predates the pt_regs syscall wrappers; KP hooks the
+         * asmlinkage entry instead. */
+        if (!fn) fn = (handler_t)find_kernel_symbol_exact("SyS_truncate");
+        if (!fn) fn = (handler_t)find_kernel_symbol_exact("sys_truncate");
         if (!fn) return -EOPNOTSUPP;
         WRITE_ONCE(handler, fn);
     }
@@ -179,7 +184,7 @@ int do_kpm(void __user *arg)
     int result;
     /* Called only through the manager_or_root-authorized extension ioctl. */
     if (copy_from_user(&cmd, arg, sizeof(cmd))) return -EFAULT;
-    if (!access_ok(u64_to_user_ptr(cmd.result_code), sizeof(result))) return -EFAULT;
+    if (!access_ok(VERIFY_READ, u64_to_user_ptr(cmd.result_code), sizeof(result))) return -EFAULT;
     result = handle_kpm(&cmd);
     return copy_to_user(u64_to_user_ptr(cmd.result_code), &result, sizeof(result)) ? -EFAULT : 0;
 }

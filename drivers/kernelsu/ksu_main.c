@@ -36,9 +36,7 @@
 #include "feature/sucompat.h"
 #include "feature/sulog.h"
 #include "feature/mount_hide.h"
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 #include "feature/selinux_hide.h"
-#endif
 #include "feature/shell_su_adb_only.h"
 #include "runtime/ksud.h"
 #include "sulog/event.h"
@@ -80,10 +78,11 @@
 #include "extension/cpu_spoof.c"
 #include "extension/umount_paths.c"
 #include "extension/dynamic_manager.c"
-/* KPM needs set_memory.h (4.13+), u64_to_user_ptr (4.20+) and the
- * generic vdso surface; on older kernels the glue (extension/kpm.c,
- * CONFIG_KPM-gated) stays but the control surface below is excluded. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+/* KPM originally needed set_memory.h (4.13+) and u64_to_user_ptr (4.20+);
+ * both are shimmed in kernel_compat.h now, and the 3.18 missing-symbol
+ * and struct-member differences are handled inside extension/kpm.  The glue
+ * (extension/kpm.c, CONFIG_KPM-gated) stays compiled on all versions. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 #include "extension/kpm/kpm.c"
 #include "extension/kpm/compact.c"
 #include "extension/kpm/super_access.c"
@@ -119,9 +118,7 @@
 #include "feature/kernel_umount.c"
 #include "feature/sucompat.c"
 #include "feature/sulog.c"
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 #include "feature/selinux_hide.c"
-#endif
 #include "feature/shell_su_adb_only.c"
 #include "feature/mount_hide.c"
 #include "runtime/ksud.c"
@@ -192,9 +189,7 @@ int __init kernelsu_init(void)
 
     ksu_shell_su_adb_only_init();
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
     ksu_selinux_hide_init();
-#endif
 
     ksu_kernel_umount_init();
 

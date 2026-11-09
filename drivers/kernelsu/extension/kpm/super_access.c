@@ -20,7 +20,10 @@
 #include <asm/cacheflush.h>
 #include <linux/module.h>
 #include <linux/vmalloc.h>
+/* linux/set_memory.h does not exist before 4.13 and nothing below calls it */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 #include <linux/set_memory.h>
+#endif
 #include <linux/version.h>
 #include <linux/export.h>
 #include <linux/slab.h>
@@ -83,12 +86,21 @@ DEFINE_MEMBER(vfsmount, mnt_flags)
 DYNAMIC_STRUCT_END(vfsmount)
 
 DYNAMIC_STRUCT_BEGIN(mnt_namespace)
+/* ns arrived with 4.13 (ns_common embedding); pre-4.14 trees keep the
+ * member list as plain `list` instead of `mounts`. 3.18 falls in the
+ * legacy branch below. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 DEFINE_MEMBER(mnt_namespace, ns)
+#endif
 DEFINE_MEMBER(mnt_namespace, root)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0)
 DEFINE_MEMBER(mnt_namespace, seq)
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 DEFINE_MEMBER(mnt_namespace, mounts)
+#else
+DEFINE_MEMBER(mnt_namespace, list)
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 DEFINE_MEMBER(mnt_namespace, count)
 #endif
@@ -166,7 +178,8 @@ DEFINE_MEMBER(task_struct, thread_info)
 #ifdef CONFIG_CGROUPS
 DEFINE_MEMBER(task_struct, cgroups)
 #endif
-#ifdef CONFIG_SECURITY
+#if defined(CONFIG_SECURITY) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+/* pre-4.13 keeps the SID on the cred, task_struct has no security member */
 DEFINE_MEMBER(task_struct, security)
 #endif
 DEFINE_MEMBER(task_struct, thread)
@@ -194,6 +207,8 @@ static struct DynamicStructInfo *dynamic_struct_infos[] = {
 int sukisu_super_find_struct(const char *struct_name, size_t *out_size,
                              int *out_members)
 {
+    size_t i;
+
     for (i = 0; i < (sizeof(dynamic_struct_infos) / sizeof(dynamic_struct_infos[0])); i++) {
         struct DynamicStructInfo *info = dynamic_struct_infos[i];
 

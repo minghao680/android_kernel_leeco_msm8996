@@ -20,7 +20,10 @@
 #include <asm/cacheflush.h>
 #include <linux/module.h>
 #include <linux/vmalloc.h>
+/* linux/set_memory.h does not exist before 4.13 and nothing below calls it */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 #include <linux/set_memory.h>
+#endif
 #include <linux/version.h>
 #include <linux/export.h>
 #include <linux/slab.h>

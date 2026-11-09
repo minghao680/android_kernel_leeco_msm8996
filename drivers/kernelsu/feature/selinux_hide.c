@@ -1,3 +1,7 @@
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+/* 5.10+: full shadow-policy engine (backup sepolicy + fake status page).
+ * Everything below until the #else is upstream code, unchanged. */
+
 #include "selinux_hide.h"
 #include "selinux/sepolicy.h"
 #include <linux/cred.h>
@@ -1094,3 +1098,148 @@ allow:
     avd->allowed = 0xffffffff;
     goto out;
 }
+
+#else /* < 5.10: 3.18 port */
+
+/* On 3.18 the shadow-policy engine above cannot be built: there is no
+ * struct selinux_state/selinux_policy and the kernel keeps a single global
+ * policydb/sidtab. The userspace-visible surface that matters is the
+ * status page: libselinux watches /sys/fs/selinux/status (read + mmap)
+ * for sequence/policyload changes to detect policy reloads. 3.18's
+ * selinuxfs stores the status page into filp->private_data on open
+ * (sel_open_handle_status), so serving a frozen copy there hides every
+ * later modification from both the read and the mmap path. The
+ * my_write_* shadow views above are dead code upstream (no callers) and
+ * are intentionally not ported. */
+
+#include "selinux/sepolicy.h"
+#include <linux/page-flags.h>
+
+extern struct page *selinux_kernel_status_page(void);
+
+static DEFINE_MUTEX(selinux_hide_mutex);
+bool ksu_selinux_hide_enabled __read_mostly = false;
+bool ksu_selinux_hide_running __read_mostly = false;
+static struct page *fake_status;
+
+/* Called from sel_open_handle_status(); NULL keeps the real page. */
+struct page *ksu_selinux_hide_fake_status_page(void)
+{
+    if (likely(!ksu_selinux_hide_running))
+        return NULL;
+    return smp_load_acquire(&fake_status);
+}
+
+static void initialize_fake_status(void)
+{
+    struct mutex *status_lock =
+        (struct mutex *)find_kernel_symbol_exact("selinux_status_lock");
+    struct page *real = selinux_kernel_status_page();
+    struct selinux_kernel_status *status, *new_status;
+    struct page *new_page;
+
+    if (fake_status)
+        return;
+    if (!real) {
+        pr_warn("initialize_fake_status: status_page not exist\n");
+        return;
+    }
+
+    status = page_address(real);
+    if (!status->enforcing) {
+        pr_warn("initialize_fake_status: skip not enforcing\n");
+        return;
+    }
+
+    new_page = alloc_page(GFP_KERNEL | __GFP_ZERO);
+    if (!new_page) {
+        pr_err("initialize_fake_status: failed to allocate page\n");
+        return;
+    }
+    new_status = page_address(new_page);
+
+    if (status_lock)
+        mutex_lock(status_lock);
+    memcpy(new_status, status, sizeof(*status));
+    if (status_lock)
+        mutex_unlock(status_lock);
+
+    smp_store_release(&fake_status, new_page);
+    pr_info("initialize_fake_status initialized: sequence=%d, policyload=%d, enforcing=%d\n",
+            new_status->sequence, new_status->policyload, new_status->enforcing);
+}
+
+void ksu_selinux_hide_handle_second_stage()
+{
+    initialize_fake_status();
+    if (!fake_status)
+        pr_warn("selinux_hide: fake status need late initialization\n");
+}
+
+void ksu_selinux_hide_handle_post_fs_data()
+{
+    /* Upstream relies on a second_stage call that never happens in this
+     * vendored tree; initialize here so the frozen page always exists by
+     * the time userspace starts mmap()-ing /sys/fs/selinux/status. */
+    if (!fake_status)
+        initialize_fake_status();
+    if (!fake_status)
+        pr_err("selinux_hide: fake status is not initialized after post-fs-data!\n");
+}
+
+static int selinux_hide_feature_get(u64 *value)
+{
+    *value = ksu_selinux_hide_enabled ? 1 : 0;
+    return 0;
+}
+
+static int selinux_hide_feature_set(u64 value)
+{
+    bool enable = value != 0;
+    int ret = 0;
+
+    pr_info("selinux_hide: set to %d\n", enable);
+    mutex_lock(&selinux_hide_mutex);
+    ksu_selinux_hide_enabled = enable;
+    if (enable) {
+        if (!ksu_selinux_hide_running)
+            ksu_selinux_hide_running = true;
+    } else {
+        ksu_selinux_hide_running = false;
+    }
+    mutex_unlock(&selinux_hide_mutex);
+    return ret;
+}
+
+static const struct ksu_feature_handler selinux_hide_handler = {
+    .feature_id = KSU_FEATURE_SELINUX_HIDE,
+    .name = "selinux_hide",
+    .get_handler = selinux_hide_feature_get,
+    .set_handler = selinux_hide_feature_set,
+};
+
+void __init ksu_selinux_hide_init()
+{
+    if (ksu_register_feature_handler(&selinux_hide_handler))
+        pr_err("Failed to register selinux_hide feature handler\n");
+}
+
+void __exit ksu_selinux_hide_exit()
+{
+    struct page *old;
+
+    mutex_lock(&selinux_hide_mutex);
+    ksu_selinux_hide_running = false;
+    mutex_unlock(&selinux_hide_mutex);
+    ksu_unregister_feature_handler(KSU_FEATURE_SELINUX_HIDE);
+    old = xchg(&fake_status, NULL);
+    if (old)
+        __free_page(old);
+}
+
+void ksu_selinux_hide_drop_backup_if_unused()
+{
+    /* No backup sepolicy on 3.18; nothing to drop. */
+}
+
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) */

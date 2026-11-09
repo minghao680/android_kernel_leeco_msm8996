@@ -55,9 +55,7 @@ void on_post_fs_data(void)
     ksu_observer_init();
     // sanity check, this may influence the performance
     stop_input_hook();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
     ksu_selinux_hide_handle_post_fs_data();
-#endif
     // retry forced features which failed at second stage
     ksu_feature_apply_forced();
     ksu_extension_apply_forced();

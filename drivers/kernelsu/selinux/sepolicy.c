@@ -326,9 +326,9 @@ static bool add_rule_raw(struct policydb *db, struct type_datum *src, struct typ
                 return false;
         }
 
-#ifdef CONFIG_KSU_SUSFS
+#if defined(CONFIG_KSU_SUSFS) && defined(KSU_HAS_SUSFS_AVD_ALLOWED_BY_TYPE)
         susfs_add_sus_avd_allowed_by_type(src->value, tgt->value, cls->value, node->datum.u.data);
-#endif // #ifdef CONFIG_KSU_SUSFS
+#endif
 
         if (invert) {
             if (perm)

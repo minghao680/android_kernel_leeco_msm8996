@@ -224,6 +224,19 @@ static int sel_open_handle_status(struct inode *inode, struct file *filp)
 	if (!status)
 		return -ENOMEM;
 
+#ifdef CONFIG_KSU
+	/* selinux_hide (3.18 port): serve a frozen status page so later
+	 * policy modifications stay invisible to status watchers (both the
+	 * read and the mmap path go through filp->private_data). */
+	{
+		extern struct page *ksu_selinux_hide_fake_status_page(void);
+		struct page *fake = ksu_selinux_hide_fake_status_page();
+
+		if (fake)
+			status = fake;
+	}
+#endif
+
 	filp->private_data = status;
 
 	return 0;
